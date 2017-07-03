@@ -1,0 +1,18 @@
+name: twenty_forty_eight_solver
+version: 0.1.0
+
+authors:
+  - Sidney Liebrand <sidneyliebrand@gmail.com>
+
+targets:
+  twenty_forty_eight_solver:
+    main: src/twenty_forty_eight_solver.cr
+
+dependencies:
+  twenty_forty_eight:
+    git: https://github.com/SidOfc/2048-crystal.git
+    branch: master
+
+crystal: 0.22.0
+
+license: MIT

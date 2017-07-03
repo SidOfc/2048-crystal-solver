@@ -1,0 +1,6 @@
+version: 1.0
+shards:
+  twenty_forty_eight:
+    git: https://github.com/SidOfc/2048-crystal.git
+    commit: b5a3af16dbd90f42fa22b0248a15fb0c3e26a9de
+
