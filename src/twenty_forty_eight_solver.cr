@@ -190,7 +190,6 @@ hi_tile  = 0
 hi_score = 0
 
 loop do
-  game = TwentyFortyEight::Game.new TwentyFortyEight.options.size
   mcnt = {:left => 0, :right => 0, :down => 0, :up => 0}
   mvs  = 0
 
