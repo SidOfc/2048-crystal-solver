@@ -38,7 +38,7 @@ module TwentyFortyEightSolver
   # c is a multiplier for not being smooth:
   #
   #   weight -= c * (cell - adjacent).abs
-  def weight(board, a = 2, b = 10, c = 20)
+  def weight(board, a = 4, b = 10, c = 20)
     size    = board.size - 1
     weight  = 0
     largest = board.flatten.max
