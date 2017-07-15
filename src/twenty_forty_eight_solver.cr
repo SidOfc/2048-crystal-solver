@@ -6,16 +6,15 @@ require "colorize"
 module TwentyFortyEightSolver
   extend self
 
-  # lower entropy is better
   def evaluate(board)
     directions = available board
 
     return nil unless directions.any?
 
-    Array({Symbol, Float32}).new(directions.size) do |idx|
+    Array({Symbol, Int32}).new(directions.size) do |idx|
       direction = directions[idx]
       {direction, weight merge_in direction, board}
-    end.sort { |a, b| a[1] <=> b[1] }.first.first
+    end.sort { |a, b| b[1] <=> a[1] }.first.first
   end
 
   def merge_in(direction, board)
@@ -28,66 +27,50 @@ module TwentyFortyEightSolver
     end
   end
 
-  def weight(board)
-    smoothness   = 0
-    monotonicity = 0
-    total        = 0
-    max_tile     = -Float32::INFINITY
-    max_loc      = { :x => 0, :y => 0 }
-    board        = board.reverse
-    size         = board.size
-                   # top left  bottom left    top right      bottom right
-    edges        = { { 0, 0 }, { 0, size-1 }, { size-1, 0 }, { size-1, size-1 } }
+  # a is a multiplier for empty cell bonus:
+  #
+  #   weight += a * 4096
+  #
+  # b is a multiplier for large values in the middle:
+  #
+  #   weight -= b * dist_to_nearest_border * cell_value
+  #
+  # c is a multiplier for not being smooth:
+  #
+  #   weight -= c * (cell - adjacent).abs
+  def weight(board, a = 2, b = 10, c = 10)
+    size    = board.size - 1
+    weight  = 0
+    largest = board.flatten.max
 
-    # for each cell
+    # general heuristic
     size.times do |y|
       size.times do |x|
-        # store value in cell variable
         cell = board[y][x]
 
-        # don't bother unless cell has a value (e.g. ignore empty tiles)
-        next unless cell > 0
-
-        # add cell^2 (cell * cell) to total
-        total += cell ** 2
-
-        # keep track of max_tile position
-        # so we can freak out when it isn't in a corner
-        if cell > max_tile
-          max_tile    = cell
-          max_loc[:x] = x
-          max_loc[:y] = y
+        # give empty cells a large bonus and move to next cell
+        if cell == 0
+          weight += a * 4096
+          next
         end
 
-        # calculate weights based on seemingly working math
-        # I have yet to figure out how exactly it works
-        # left        right       up          down
-        { { x-1, y }, { x+1, y }, { x, y-1 }, { x, y+1 } }.each do |pos|
-          # skip out of bounds elements
-          next if pos[0] < 0 || pos[1] < 0 || pos[0] == board.size || pos[1] == board.size
+        # penalty for large values in the middle
+        dist    = [[x, size - x].min, [y, size - y].min].min
+        weight -= b * dist * cell
 
-          # score weight
-          weight        = (board[pos[1]][pos[0]] - cell) ** 2
+        # give large bonus when largest cell is in a corner
+        weight += 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
 
-          # seems we always want to calculate how "smooth" any given neighbor is
-          # compared to the current tile (cell variable)
-          smoothness   += weight
-
-          # however, only if a weight is present, we want to calculate
-          # monotonicity
-          monotonicity += weight if weight > 0
+        # penalty for not being smooth
+        if x > 0 && y > 0 && size > x && size > y
+          [board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]].each do |other|
+            weight -= c * (cell - other).abs
+          end
         end
       end
     end
 
-    # this is the "going crazy" part, where we push the entropy to basically the
-    # worst possible state when the board is not aligned.
-    return Float32::INFINITY unless edges.find &.==({ max_loc[:x], max_loc[:y] })
-
-    tmp = [smoothness, monotonicity, (size ** 2), (max_tile ** 4), total].map &.to_f32
-    sum = tmp[0] + tmp[1] + tmp[2] - tmp[3] - tmp[4]
-
-    sum / tmp.max
+    weight
   end
 
   def up(board)
@@ -185,20 +168,23 @@ end
 
 mode = :smart
 
+if mode == :man
+  game = TwentyFortyEight::Game.new
+  20.times { render(game.board) && game.move TwentyFortyEightSolver.available(game.board).sample }
+  puts render game.board
+  puts TwentyFortyEightSolver.evaluate game.board
+  exit
+end
+
 loop do
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
     sleep 0.2
     puts render board
-    case mode
+    puts "\033[#{(board.size * 3) + 1}A"
+    break unless case mode
     when :smart then move TwentyFortyEightSolver.evaluate board
     when :naive then down || left || right || up
     end
-    move = TwentyFortyEightSolver.evaluate board
-
-    move ||= down || left || right || up
-
-    puts "\033[#{(board.size * 3) + 1}A"
-    move
   end
 end
 
