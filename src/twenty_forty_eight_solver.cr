@@ -38,7 +38,7 @@ module TwentyFortyEightSolver
   # c is a multiplier for not being smooth:
   #
   #   weight -= c * (cell - adjacent).abs
-  def weight(board, a = 2, b = 10, c = 10)
+  def weight(board, a = 2, b = 10, c = 20)
     size    = board.size - 1
     weight  = 0
     largest = board.flatten.max
@@ -147,23 +147,33 @@ COLOR_MAP = {
   256  => [:white, :light_cyan],
   512  => [:white, :cyan],
   1024 => [:white, :light_blue],
-  2048 => [:white, :blue]
+  2048 => [:white, :blue],
+  4096 => [:white, :light_gray],
+  8192 => [:white, :dark_gray]
 }
 
-def render(board, padding = 9)
-  board.map do |row|
+CELL_PADDING = 9
+
+def render(board, *info)
+  # transform board into printable lines
+  lines = board.map_with_index do |row|
     row.map do |value|
       fg, bg = COLOR_MAP[value]
       strval = value == 0 ? "" : value.to_s
-      rem    = (padding - strval.size) / 2.0
-      filler = (" " * padding).colorize.back(bg).to_s
+      rem    = (CELL_PADDING - strval.size) / 2.0
+      filler = (" " * CELL_PADDING).colorize.back(bg).to_s
       fmttd  = ((" " * rem.floor.to_i) +
                 strval.colorize.fore(fg).bold.to_s +
                 (" " * rem.ceil.to_i).colorize.back(bg).to_s).colorize.back(bg).to_s
 
       [filler, fmttd, filler]
-    end.transpose.map(&.join).join "\n"
-  end.join "\n"
+    end.transpose.map &.join
+  end.flatten
+
+  # append any additional info to the top right side of the board
+  info.each_with_index { |text, idx| lines[idx] += "   #{text}" }
+
+  lines.join "\n"
 end
 
 mode = :smart
@@ -176,24 +186,48 @@ if mode == :man
   exit
 end
 
+hi_tile  = 0
+hi_score = 0
+
 loop do
+  game = TwentyFortyEight::Game.new TwentyFortyEight.options.size
+  mcnt = {:left => 0, :right => 0, :down => 0, :up => 0}
+  mvs  = 0
+
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
-    sleep 0.2
-    puts render board
-    puts "\033[#{(board.size * 3) + 1}A"
-    break unless case mode
-    when :smart then move TwentyFortyEightSolver.evaluate board
+    moved = move case mode
+    when :smart then TwentyFortyEightSolver.evaluate board
     when :naive then down || left || right || up
     end
+
+    break unless moved
+    sleep 0.2
+
+    mvs += 1
+    mcnt[moved] += 1
+    max_tile = board.flatten.max
+    hi_tile  = max_tile if max_tile > hi_tile
+    hi_score = score if score > hi_score
+
+    percentage_strs = [
+      "left:    #{((mcnt[:left] / mvs.to_f32) * 100).round(3)}%",
+      "right:   #{((mcnt[:right] / mvs.to_f32) * 100).round(3)}%",
+      "up:      #{((mcnt[:up] / mvs.to_f32) * 100).round(3)}%",
+      "down:    #{((mcnt[:down] / mvs.to_f32) * 100).round(3)}%"
+    ]
+
+    percentage_strs[0] = percentage_strs[0].colorize.fore(:green).to_s if moved == :left
+    percentage_strs[1] = percentage_strs[1].colorize.fore(:green).to_s if moved == :right
+    percentage_strs[2] = percentage_strs[2].colorize.fore(:green).to_s if moved == :up
+    percentage_strs[3] = percentage_strs[3].colorize.fore(:green).to_s if moved == :down
+
+    puts render board, "score:   #{score}",
+                       "hi:      #{hi_score}",
+                       "",
+                       "largest: #{max_tile}",
+                       "hi:      #{hi_tile}",
+                       "",
+                       *Tuple(String, String, String, String).from(percentage_strs)
+    puts "\033[#{(game.board.size * 3) + 1}A"
   end
 end
-
-# TwentyFortyEight.sample do
-#   sleep 0.5
-#   puts render board
-#   best = TwentyFortyEightSolver.evaluate(board)
-#   break unless best[0]? && best[0][0]?
-#   puts "\033[#{(board.size * 3) + 1}A"
-#   move best[0][0]
-# end
-
