@@ -209,10 +209,10 @@ loop do
     hi_score = score if score > hi_score
 
     percentage_strs = [
-      "left:    #{((mcnt[:left] / mvs.to_f32) * 100).round(3)}%",
-      "right:   #{((mcnt[:right] / mvs.to_f32) * 100).round(3)}%",
-      "up:      #{((mcnt[:up] / mvs.to_f32) * 100).round(3)}%",
-      "down:    #{((mcnt[:down] / mvs.to_f32) * 100).round(3)}%"
+      "left:    #{((mcnt[:left] / mvs.to_f32) * 100).round(3)}%         ",
+      "right:   #{((mcnt[:right] / mvs.to_f32) * 100).round(3)}%        ",
+      "up:      #{((mcnt[:up] / mvs.to_f32) * 100).round(3)}%           ",
+      "down:    #{((mcnt[:down] / mvs.to_f32) * 100).round(3)}%         "
     ]
 
     percentage_strs[0] = percentage_strs[0].colorize.fore(:green).to_s if moved == :left
@@ -220,13 +220,17 @@ loop do
     percentage_strs[2] = percentage_strs[2].colorize.fore(:green).to_s if moved == :up
     percentage_strs[3] = percentage_strs[3].colorize.fore(:green).to_s if moved == :down
 
-    puts render board, "score:   #{score}",
-                       "hi:      #{hi_score}",
-                       "",
-                       "largest: #{max_tile}",
-                       "hi:      #{hi_tile}",
-                       "",
-                       *Tuple(String, String, String, String).from(percentage_strs)
-    puts "\033[#{(game.board.size * 3) + 1}A"
+    puts render board, "score:   #{score}           ",
+                       "hi:      #{hi_score}        ",
+                       "                            ",
+                       "largest: #{max_tile}        ",
+                       "hi:      #{hi_tile}         ",
+                       "                            ",
+                       "moves:   #{mvs}             ",
+                       percentage_strs[0],
+                       percentage_strs[1],
+                       percentage_strs[2],
+                       percentage_strs[3]
+    puts "\033[#{(board.size * 3) + 1}A"
   end
 end
