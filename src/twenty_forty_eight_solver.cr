@@ -27,26 +27,13 @@ module TwentyFortyEightSolver
     end
   end
 
-  # a is a multiplier for empty cell bonus:
-  #
-  #   weight += a * 4096
-  #
-  # b is a multiplier for large values in the middle:
-  #
-  #   weight -= b * dist_to_nearest_border * cell_value
-  #
-  # c is a multiplier for not being smooth:
-  #
-  #   weight -= c * (cell - adjacent).abs
-  #
-  # d is a multiplier for keeping the highest tile in the corner:
-  #
-  #   weight += d * 4096
-  #
-  def weight(board, a = 2, b = 10, c = b, d = a)
+  def weight(board)
+    vals    = board.flatten
     size    = board.size - 1
-    weight  = 0
-    largest = board.flatten.max
+    avg     = vals.sum / board.size
+    invempt = 1 + (board.size - board.select(&.==(0)).size) / 2
+    weight  = -vals.reduce(0) { |initial, cell| cell >= avg ? (initial + invempt * 4096) : initial }
+    largest = vals.max
 
     # general heuristic
     size.times do |y|
@@ -55,21 +42,21 @@ module TwentyFortyEightSolver
 
         # give empty cells a large bonus and move to next cell
         if cell == 0
-          weight += a * 4096
+          weight += invempt * 4096
           next
         end
 
         # penalty for large values in the middle
-        dist    = [[x, size - x].min, [y, size - y].min].min
-        weight -= b * dist * cell
+        dist    = [[x, size - x].min, [y, size - y].min]
+        weight -= (5 * [x, size - 1].min * cell) + (5 * [y, size - 1].min * cell)
 
         # give large bonus when largest cell is in a corner
-        weight += d * 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
+        weight += 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
 
         # penalty for not being smooth
         if x > 0 && y > 0 && size > x && size > y
           [board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]].each do |other|
-            weight -= c * (cell - other).abs
+            weight -= (3 * invempt) * (cell - other).abs
           end
         end
       end
