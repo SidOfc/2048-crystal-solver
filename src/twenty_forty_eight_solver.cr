@@ -9,12 +9,12 @@ module TwentyFortyEightSolver
   def evaluate(board)
     directions = available board
 
-    return nil unless directions.any?
+    return unless directions.any?
 
     Array({Symbol, Int32}).new(directions.size) do |idx|
       direction = directions[idx]
       {direction, weight merge_in direction, board}
-    end.sort { |a, b| b[1] <=> a[1] }.first.first
+    end.sort { |a, b| b[1] <=> a[1] }
   end
 
   def merge_in(direction, board)
@@ -141,20 +141,21 @@ end
 
 # tilevalue => [:fore, :back]
 COLOR_MAP = {
-  0    => [:white, :white],
-  2    => [:white, :light_green],
-  4    => [:white, :green],
-  8    => [:white, :light_yellow],
-  16   => [:white, :light_red],
-  32   => [:white, :red],
-  64   => [:white, :light_magenta],
-  128  => [:white, :magenta],
-  256  => [:white, :light_cyan],
-  512  => [:white, :cyan],
-  1024 => [:white, :light_blue],
-  2048 => [:white, :blue],
-  4096 => [:white, :light_gray],
-  8192 => [:white, :dark_gray]
+  0     => [:white, :white],
+  2     => [:white, :green],
+  4     => [:white, :light_green],
+  8     => [:white, :yellow],
+  16    => [:white, :light_yellow],
+  32    => [:white, :red],
+  64    => [:white, :light_red],
+  128   => [:white, :magenta],
+  256   => [:white, :light_magenta],
+  512   => [:white, :cyan],
+  1024  => [:white, :light_cyan],
+  2048  => [:white, :blue],
+  4096  => [:white, :light_blue],
+  8192  => [:white, :dark_gray],
+  16384 => [:white, :black]
 }
 
 CELL_PADDING = 9
@@ -181,13 +182,11 @@ def render(board, *info)
   lines.join "\n"
 end
 
-mode = :smart
-
-# game = TwentyFortyEight::Game.new
-# 20.times { render(game.board) && game.move TwentyFortyEightSolver.available(game.board).sample }
-# puts render game.board
-# puts TwentyFortyEightSolver.evaluate game.board
-# exit
+def row(*data, **opts)
+  padding = opts[:padding]? || 8
+  gutter  = " " * (opts[:gutter]? || 3)
+  data.map(&.to_s.ljust(padding)).join gutter
+end
 
 hi_tile  = 0
 hi_score = 0
@@ -197,42 +196,31 @@ loop do
   mvs  = 0
 
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
-    break unless moved = case mode
-    when :smart then move TwentyFortyEightSolver.evaluate board
-    when :naive then down || left || right || up
-    end
+    break unless weights = TwentyFortyEightSolver.evaluate board
 
-    sleep 0.2
+    move weights[0][0]
+    sleep 0.15
 
     mvs += 1
-    mcnt[moved] += 1
+    mcnt[weights[0][0]] += 1
     max_tile = board.flatten.max
     hi_tile  = max_tile if max_tile > hi_tile
     hi_score = score if score > hi_score
 
-    percentage_strs = [
-      "left:    #{((mcnt[:left] / mvs.to_f32) * 100).round(3)}%         ",
-      "right:   #{((mcnt[:right] / mvs.to_f32) * 100).round(3)}%        ",
-      "up:      #{((mcnt[:up] / mvs.to_f32) * 100).round(3)}%           ",
-      "down:    #{((mcnt[:down] / mvs.to_f32) * 100).round(3)}%         "
-    ]
+    lw, rw, uw, dw = [:left, :right, :up, :down].map do |direction|
+      weight = weights.find(&.first.==(direction))
+      weight && weight.last || ""
+    end
 
-    percentage_strs[0] = percentage_strs[0].colorize.fore(:green).to_s if moved == :left
-    percentage_strs[1] = percentage_strs[1].colorize.fore(:green).to_s if moved == :right
-    percentage_strs[2] = percentage_strs[2].colorize.fore(:green).to_s if moved == :up
-    percentage_strs[3] = percentage_strs[3].colorize.fore(:green).to_s if moved == :down
-
-    puts render board, "score:   #{score}           ",
-                       "hi:      #{hi_score}        ",
-                       "                            ",
-                       "largest: #{max_tile}        ",
-                       "hi:      #{hi_tile}         ",
-                       "                            ",
-                       "moves:   #{mvs}             ",
-                       percentage_strs[0],
-                       percentage_strs[1],
-                       percentage_strs[2],
-                       percentage_strs[3]
+    puts render board, row("metrics", "score", "tile").colorize.green.bold.to_s,
+                       row("current", score, max_tile),
+                       row("highest", hi_score, hi_tile),
+                       row(""),
+                       row("move", "perc", "weight").colorize.green.bold.to_s,
+                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(3), lw),
+                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(3), rw),
+                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(3), uw),
+                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(3), dw)
     puts "\033[#{(board.size * 3) + 1}A"
   end
 end
