@@ -30,10 +30,8 @@ module TwentyFortyEightSolver
   def weight(board)
     vals    = board.flatten
     size    = board.size - 1
-    avg     = vals.sum / board.size
-    invempt = 1 + (board.size - board.select(&.==(0)).size) / 2
-    weight  = -vals.reduce(0) { |initial, cell| cell >= avg ? (initial + invempt * 4096) : initial }
     largest = vals.max
+    weight  = vals.find(&.==(0)) ? 0 : -largest
 
     # general heuristic
     size.times do |y|
@@ -42,21 +40,21 @@ module TwentyFortyEightSolver
 
         # give empty cells a large bonus and move to next cell
         if cell == 0
-          weight += invempt * 4096
+          weight += 4096
           next
         end
 
-        # penalty for large values in the middle
-        dist    = [[x, size - x].min, [y, size - y].min]
-        weight -= (5 * [x, size - 1].min * cell) + (5 * [y, size - 1].min * cell)
+        # penalty for large values not close to any corner
+        weight -= 4 * [x, size - x].min * cell
+        weight -= 4 * [y, size - y].min * cell
 
         # give large bonus when largest cell is in a corner
         weight += 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
 
         # penalty for not being smooth
-        if x > 0 && y > 0 && size > x && size > y
+        if x > 0 && y > 0 && board.size > x && board.size > y
           [board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]].each do |other|
-            weight -= (3 * invempt) * (cell - other).abs
+            weight -= 8 * (cell - other).abs
           end
         end
       end
