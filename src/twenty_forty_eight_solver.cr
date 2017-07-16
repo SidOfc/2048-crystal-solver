@@ -38,7 +38,12 @@ module TwentyFortyEightSolver
   # c is a multiplier for not being smooth:
   #
   #   weight -= c * (cell - adjacent).abs
-  def weight(board, a = 4, b = 10, c = 20)
+  #
+  # d is a multiplier for keeping the highest tile in the corner:
+  #
+  #   weight += d * 4096
+  #
+  def weight(board, a = 2, b = 10, c = b, d = a)
     size    = board.size - 1
     weight  = 0
     largest = board.flatten.max
@@ -59,7 +64,7 @@ module TwentyFortyEightSolver
         weight -= b * dist * cell
 
         # give large bonus when largest cell is in a corner
-        weight += 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
+        weight += d * 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
 
         # penalty for not being smooth
         if x > 0 && y > 0 && size > x && size > y
