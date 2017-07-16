@@ -183,13 +183,11 @@ end
 
 mode = :smart
 
-if mode == :man
-  game = TwentyFortyEight::Game.new
-  20.times { render(game.board) && game.move TwentyFortyEightSolver.available(game.board).sample }
-  puts render game.board
-  puts TwentyFortyEightSolver.evaluate game.board
-  exit
-end
+# game = TwentyFortyEight::Game.new
+# 20.times { render(game.board) && game.move TwentyFortyEightSolver.available(game.board).sample }
+# puts render game.board
+# puts TwentyFortyEightSolver.evaluate game.board
+# exit
 
 hi_tile  = 0
 hi_score = 0
@@ -199,12 +197,11 @@ loop do
   mvs  = 0
 
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
-    moved = move case mode
-    when :smart then TwentyFortyEightSolver.evaluate board
+    break unless moved = case mode
+    when :smart then move TwentyFortyEightSolver.evaluate board
     when :naive then down || left || right || up
     end
 
-    break unless moved
     sleep 0.2
 
     mvs += 1
