@@ -202,10 +202,10 @@ loop do
                        row("highest", hi_score, hi_tile),
                        row(""),
                        row("move", "perc", "weight").colorize.green.bold.to_s,
-                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(3), lw),
-                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(3), rw),
-                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(3), uw),
-                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(3), dw)
+                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2), lw),
+                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2), rw),
+                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2), uw),
+                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2), dw)
     puts "\033[#{(board.size * 3) + 1}A"
   end
 end
