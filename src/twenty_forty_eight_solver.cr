@@ -11,16 +11,17 @@ module TwentyFortyEightSolver
 
     return unless directions.any?
 
-    Array({Symbol, Int32, Tuple(Int32, Int32, Int32)}).new(directions.size) do |idx|
+    Array({Symbol, Int32, NamedTuple(empty: Int32, mono: Int32, smooth: Int32)}).new(directions.size) do |idx|
       direction = directions[idx]
       weights   = weight merge_in direction, board
 
-      {direction, weights.sum, weights}
+      {direction, (weights[:empty] - (weights[:mono] + weights[:smooth])), weights}
     end.sort { |a, b| b[1] <=> a[1] }
   end
 
   def merge_in(direction, board)
     case direction
+    when :down  then down board
     when :right then right board
     when :left  then left board
     when :up    then up board
@@ -30,7 +31,8 @@ module TwentyFortyEightSolver
 
   def weight(board)
     vals    = board.flatten
-    size    = board.size - 1
+    size    = board.size
+    average = vals.sum / board.size
     largest = vals.max
     empty, mono, smooth = 0, 0, 0
 
@@ -40,30 +42,26 @@ module TwentyFortyEightSolver
         cell = board[y][x]
 
         # give empty cells a large bonus and move to next cell
-        if cell == 0
-          empty += 4096
-          next
-        end
+        (empty += average) && next if cell == 0
 
         # penalty for large values not close to any corner
-        mono -= 4 * [x, size - x].min * cell
-        mono -= 4 * [y, size - y].min * cell
-
-        # give large bonus when largest cell is in a corner
-        # cornered += 4096 if cell == largest &&
-        #                     (x == 0 || x == board.size) &&
-        #                     (y == 0 || y == board.size)
+        mono += 4 * [x, size - x].min * cell
+        mono += 4 * [y, size - y].min * cell
 
         # penalty for not being smooth
-        if x > 0 && y > 0 && board.size > x && board.size > y
-          [board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]].each do |other|
-            smooth -= 8 * (cell - other).abs
-          end
+        if (t = y > 0 ? board[y-1][x] : -1) > -1
+          smooth += 2 * (cell - t).abs
+        elsif (b = y < size ? board[y+1][x] : -1) > -1
+          smooth += 2 * (cell - b).abs
+        elsif (l = x > 0 ? board[y][x-1] : -1) > -1
+          smooth += 2 * (cell - l).abs
+        elsif (r = x < size ? board[y][x+1] : -1) > -1
+          smooth += 2 * (cell - r).abs
         end
       end
     end
 
-    {empty, mono, smooth}
+    {empty: empty, mono: mono, smooth: smooth}
   end
 
   def up(board)
@@ -196,8 +194,9 @@ loop do
     hi_score = score if score > hi_score
 
     lw, rw, uw, dw = [:left, :right, :up, :down].map do |direction|
-       if tmps = weights.find(&.first.==(direction))
-         row(*tmps.last)
+       if found = weights.find(&.first.==(direction))
+         current = found.last
+         row current[:empty], current[:mono], current[:smooth]
        else
          " " * 30 # clear about the length of all the values
        end
