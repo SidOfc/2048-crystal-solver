@@ -29,25 +29,24 @@ module TwentyFortyEightSolver
     end
   end
 
-  def weight(board)
+  def weight(board, e = 2, m = 12, s = 2)
     size, empty, mono, smooth = board.size, 0, 0, 0
-    a, b, c   = 8, 8, 2
     flattened = board.flatten
-    average   = flattened.sum / flattened.size
+    average   = e * (flattened.select(&.>(0)).size - size) * (flattened.sum / flattened.size) << 1
 
     size.times do |y|
       size.times do |x|
         cell    = board[y][x]
 
-        (empty += a * average) && next if cell == 0                              # [empty]        give empty cells a large bonus and move to next cell
+        (empty += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mono   += b * {x, size - x}.min * cell                                   # [monotonocity] penalty for large values not near horizontal border
-        mono   += b * {y, size - y}.min * cell                                   # [monotonocity] penalty for large values not near vertical border
+        mono   += m * {x, size - x}.min * cell  # penalty for large values not near horizontal border
+        mono   += m * {y, size - y}.min * cell  # penalty for large values not near vertical border
 
-        smooth += c * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # [smoothness]   top of current
-        smooth += c * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # [smoothness]   down of current
-        smooth += c * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # [smoothness]   left of current
-        smooth += c * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # [smoothness]   right of current
+        smooth += s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
+        smooth += s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
+        smooth += s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
+        smooth += s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
       end
     end
 
@@ -166,6 +165,11 @@ end
 
 hi_tile  = 0
 hi_score = 0
+
+Signal::INT.trap do
+  puts "\033[#{(TwentyFortyEight.options.size * 3) + 1}A"
+  exit
+end
 
 loop do
   mcnt = {:left => 0, :right => 0, :down => 0, :up => 0}
