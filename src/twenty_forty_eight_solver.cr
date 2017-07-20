@@ -30,10 +30,8 @@ module TwentyFortyEightSolver
   end
 
   def weight(board)
-    vals    = board.flatten
     size    = board.size
-    average = vals.sum / board.size
-    largest = vals.max
+    average = board.flatten.sum / board.size
     empty, mono, smooth = 0, 0, 0
 
     # general heuristic
