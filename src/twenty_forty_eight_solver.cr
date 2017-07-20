@@ -34,23 +34,19 @@ module TwentyFortyEightSolver
     average = board.flatten.sum / board.size
     empty, mono, smooth = 0, 0, 0
 
-    # general heuristic
     size.times do |y|
       size.times do |x|
-        cell = board[y][x]
+        cell    = board[y][x]
 
-        # give empty cells a large bonus and move to next cell
-        (empty += 8 * average) && next if cell == 0
+        (empty += 8 * average) && next if cell == 0                       # [empty]        give empty cells a large bonus and move to next cell
 
-        # penalty for large values not close to any corner
-        mono += 4 * {x, size - x}.min * cell
-        mono += 4 * {y, size - y}.min * cell
+        mono   += 4 * {x, size - x}.min * cell                            # [monotonocity] penalty for large values not near horizontal border
+        mono   += 4 * {y, size - y}.min * cell                            # [monotonocity] penalty for large values not near vertical border
 
-        # penalty for not being smooth
-        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs # top of current
-        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs # down of current
-        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs # left of current
-        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs # right of current
+        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs # [smoothness]   top of current
+        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs # [smoothness]   down of current
+        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs # [smoothness]   left of current
+        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs # [smoothness]   right of current
       end
     end
 
