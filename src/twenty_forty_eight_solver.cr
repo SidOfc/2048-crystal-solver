@@ -11,16 +11,17 @@ module TwentyFortyEightSolver
 
     return unless directions.any?
 
-    Array({Symbol, Int32}).new(directions.size) do |idx|
+    Array({Symbol, Int32, Tuple(Int32, Int32, Int32)}).new(directions.size) do |idx|
       direction = directions[idx]
-      {direction, weight merge_in direction, board}
+      weights   = weight merge_in direction, board
+
+      {direction, weights.sum, weights}
     end.sort { |a, b| b[1] <=> a[1] }
   end
 
   def merge_in(direction, board)
     case direction
     when :right then right board
-    when :down  then down board
     when :left  then left board
     when :up    then up board
     else board
@@ -31,7 +32,7 @@ module TwentyFortyEightSolver
     vals    = board.flatten
     size    = board.size - 1
     largest = vals.max
-    weight  = vals.find(&.==(0)) ? 0 : -largest
+    empty, mono, smooth = 0, 0, 0
 
     # general heuristic
     size.times do |y|
@@ -40,27 +41,29 @@ module TwentyFortyEightSolver
 
         # give empty cells a large bonus and move to next cell
         if cell == 0
-          weight += 4096
+          empty += 4096
           next
         end
 
         # penalty for large values not close to any corner
-        weight -= 4 * [x, size - x].min * cell
-        weight -= 4 * [y, size - y].min * cell
+        mono -= 4 * [x, size - x].min * cell
+        mono -= 4 * [y, size - y].min * cell
 
         # give large bonus when largest cell is in a corner
-        weight += 4096 if cell == largest && (x == 0 || x == size) && (y == 0 || y == size)
+        # cornered += 4096 if cell == largest &&
+        #                     (x == 0 || x == board.size) &&
+        #                     (y == 0 || y == board.size)
 
         # penalty for not being smooth
         if x > 0 && y > 0 && board.size > x && board.size > y
           [board[y-1][x], board[y+1][x], board[y][x-1], board[y][x+1]].each do |other|
-            weight -= 8 * (cell - other).abs
+            smooth -= 8 * (cell - other).abs
           end
         end
       end
     end
 
-    weight
+    {empty, mono, smooth}
   end
 
   def up(board)
@@ -193,15 +196,18 @@ loop do
     hi_score = score if score > hi_score
 
     lw, rw, uw, dw = [:left, :right, :up, :down].map do |direction|
-      weight = weights.find(&.first.==(direction))
-      weight && weight.last || ""
+       if tmps = weights.find(&.first.==(direction))
+         row(*tmps.last)
+       else
+         " " * 30 # clear about the length of all the values
+       end
     end
 
     puts render board, row("metrics", "score", "tile").colorize.green.bold.to_s,
                        row("current", score, max_tile),
                        row("highest", hi_score, hi_tile),
                        row(""),
-                       row("move", "perc", "weight").colorize.green.bold.to_s,
+                       row("move", "perc", "empty", "mono", "smooth").colorize.green.bold.to_s,
                        row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2), lw),
                        row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2), rw),
                        row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2), uw),
