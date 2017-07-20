@@ -49,10 +49,10 @@ module TwentyFortyEightSolver
         mono += 4 * {y, size - y}.min * cell
 
         # penalty for not being smooth
-        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs
-        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs
-        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs
-        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs
+        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs # top of current
+        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs # down of current
+        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs # left of current
+        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs # right of current
       end
     end
 
