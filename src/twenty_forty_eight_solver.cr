@@ -30,23 +30,24 @@ module TwentyFortyEightSolver
   end
 
   def weight(board)
-    size    = board.size
-    average = board.flatten.sum / board.size
-    empty, mono, smooth = 0, 0, 0
+    size, empty, mono, smooth = board.size, 0, 0, 0
+    a, b, c   = 8, 8, 2
+    flattened = board.flatten
+    average   = flattened.sum / flattened.size
 
     size.times do |y|
       size.times do |x|
         cell    = board[y][x]
 
-        (empty += 8 * average) && next if cell == 0                       # [empty]        give empty cells a large bonus and move to next cell
+        (empty += a * average) && next if cell == 0                              # [empty]        give empty cells a large bonus and move to next cell
 
-        mono   += 4 * {x, size - x}.min * cell                            # [monotonocity] penalty for large values not near horizontal border
-        mono   += 4 * {y, size - y}.min * cell                            # [monotonocity] penalty for large values not near vertical border
+        mono   += b * {x, size - x}.min * cell                                   # [monotonocity] penalty for large values not near horizontal border
+        mono   += b * {y, size - y}.min * cell                                   # [monotonocity] penalty for large values not near vertical border
 
-        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs # [smoothness]   top of current
-        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs # [smoothness]   down of current
-        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs # [smoothness]   left of current
-        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs # [smoothness]   right of current
+        smooth += c * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # [smoothness]   top of current
+        smooth += c * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # [smoothness]   down of current
+        smooth += c * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # [smoothness]   left of current
+        smooth += c * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # [smoothness]   right of current
       end
     end
 
