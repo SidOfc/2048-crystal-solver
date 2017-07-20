@@ -42,22 +42,17 @@ module TwentyFortyEightSolver
         cell = board[y][x]
 
         # give empty cells a large bonus and move to next cell
-        (empty += average) && next if cell == 0
+        (empty += 8 * average) && next if cell == 0
 
         # penalty for large values not close to any corner
-        mono += 4 * [x, size - x].min * cell
-        mono += 4 * [y, size - y].min * cell
+        mono += 4 * {x, size - x}.min * cell
+        mono += 4 * {y, size - y}.min * cell
 
         # penalty for not being smooth
-        if (t = y > 0 ? board[y-1][x] : -1) > -1
-          smooth += 2 * (cell - t).abs
-        elsif (b = y < size ? board[y+1][x] : -1) > -1
-          smooth += 2 * (cell - b).abs
-        elsif (l = x > 0 ? board[y][x-1] : -1) > -1
-          smooth += 2 * (cell - l).abs
-        elsif (r = x < size ? board[y][x+1] : -1) > -1
-          smooth += 2 * (cell - r).abs
-        end
+        smooth += 2 * (cell - (y > 0            ? board[y-1][x] : 0)).abs
+        smooth += 2 * (cell - (y < size - 1     ? board[y+1][x] : 0)).abs
+        smooth += 2 * (cell - (l = x > 0        ? board[y][x-1] : 0)).abs
+        smooth += 2 * (cell - (r = x < size - 1 ? board[y][x+1] : 0)).abs
       end
     end
 
