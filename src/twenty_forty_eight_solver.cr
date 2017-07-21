@@ -29,28 +29,31 @@ module TwentyFortyEightSolver
     end
   end
 
-  def weight(board, e = 2, m = 12, s = 2)
-    size, empty, mono, smooth = board.size, 0, 0, 0
-    flattened = board.flatten
-    average   = e * (flattened.select(&.>(0)).size - size) * (flattened.sum / flattened.size) << 1
+  def weight(board, e = 3, m = 12, s = 3)
+    flattened      = board.flatten
+    size           = board.size
+    average        = e * flattened.select(&.>(0)).size * flattened.sum / flattened.size
+    initial        = flattened.uniq.map { |value| [value, flattened.count(value)] }
+                                   .reduce(0) { |init, (val, amount)| init + val * amount }
+    empt, mon, smt = initial, -initial, initial
 
     size.times do |y|
       size.times do |x|
-        cell    = board[y][x]
+        cell   = board[y][x]
 
-        (empty += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
+        (empt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mono   += m * {x, size - x}.min * cell  # penalty for large values not near horizontal border
-        mono   += m * {y, size - y}.min * cell  # penalty for large values not near vertical border
+        mon   += m * {x, size - x}.min * cell  # penalty for large values not near horizontal border
+        mon   += m * {y, size - y}.min * cell  # penalty for large values not near vertical border
 
-        smooth += s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
-        smooth += s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
-        smooth += s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
-        smooth += s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
+        smt   += s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
+        smt   += s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
+        smt   += s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
+        smt   += s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
       end
     end
 
-    {empty: empty, mono: mono, smooth: smooth}
+    {empty: empt, mono: mon, smooth: smt}
   end
 
   def up(board)
