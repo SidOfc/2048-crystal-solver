@@ -6,16 +6,16 @@ require "colorize"
 module TwentyFortyEightSolver
   extend self
 
-  def evaluate(board)
+  def evaluate(board, e = 5, m = 13, s = 3)
     directions = available board
 
     return unless directions.any?
 
-    Array({Symbol, Int32, NamedTuple(empty: Int32, mono: Int32, smooth: Int32)}).new(directions.size) do |idx|
+    Array({Symbol, Int32, Tuple(Int32, Int32, Int32)}).new(directions.size) do |idx|
       direction = directions[idx]
-      weights   = weight merge_in direction, board
+      weights   = weight merge_in(direction, board), e, m, s
 
-      {direction, (weights[:empty] - (weights[:mono] + weights[:smooth])), weights}
+      {direction, (weights[0] - (weights[1] + weights[2])), weights}
     end.sort { |a, b| b[1] <=> a[1] }
   end
 
@@ -29,13 +29,11 @@ module TwentyFortyEightSolver
     end
   end
 
-  def weight(board, e = 3, m = 12, s = 3)
+  def weight(board, e = 5, m = 13, s = 3)
     flattened      = board.flatten
     size           = board.size
     average        = e * flattened.select(&.>(0)).size * flattened.sum / flattened.size
-    initial        = flattened.uniq.map { |value| [value, flattened.count(value)] }
-                                   .reduce(0) { |init, (val, amount)| init + val * amount }
-    empt, mon, smt = initial, -initial, initial
+    empt, mon, smt = 0, 0, 0
 
     size.times do |y|
       size.times do |x|
@@ -53,7 +51,7 @@ module TwentyFortyEightSolver
       end
     end
 
-    {empty: empt, mono: mon, smooth: smt}
+    {empt, mon, smt}
   end
 
   def up(board)
@@ -166,48 +164,68 @@ def row(*data, **opts)
   data.map(&.to_s.ljust(padding)).join gutter
 end
 
-hi_tile  = 0
-hi_score = 0
-
 Signal::INT.trap do
   puts "\033[#{(TwentyFortyEight.options.size * 3) + 1}A"
   exit
 end
 
+hi_tile  = 0
+hi_score = 0
+mod_emt  = 5
+mod_mon  = 14
+mod_smt  = 2
+scores_g = {} of Int32 => Int32
+
+def tile_counts(scores)
+  distinct = scores.uniq
+  {128, 256, 512, 1024}.each_with_object({} of Int32 => Int32) { |score, counts| counts[score] = scores.count(&.==(score)) }
+end
+
 loop do
-  mcnt = {:left => 0, :right => 0, :down => 0, :up => 0}
-  mvs  = 0
+  mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
+  mvs    = 0
+  scores = [] of Int32
 
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
-    break unless weights = TwentyFortyEightSolver.evaluate board
+    max_tile = board.flatten.max
+    scores << max_tile unless scores.includes? max_tile
+    break unless weights = TwentyFortyEightSolver.evaluate board, mod_emt, mod_mon, mod_smt
 
     move weights[0][0]
     sleep 0.15
 
     mvs += 1
     mcnt[weights[0][0]] += 1
-    max_tile = board.flatten.max
     hi_tile  = max_tile if max_tile > hi_tile
     hi_score = score if score > hi_score
 
+    dirs = {} of Symbol => (Int32 | Nil)
     lw, rw, uw, dw = [:left, :right, :up, :down].map do |direction|
        if found = weights.find(&.first.==(direction))
-         current = found.last
-         row current[:empty], current[:mono], current[:smooth]
+         dirs[direction] = found[1]
+         row *found.last
        else
          " " * 30 # clear about the length of all the values
        end
     end
 
-    puts render board, row("metrics", "score", "tile").colorize.green.bold.to_s,
-                       row("current", score, max_tile),
+    tmp = tile_counts scores
+    counts = {128, 256, 512, 1024}.each_with_object({} of Int32 => Int32) do |score, counts|
+      counts[score] = (scores_g[score]? || 0) + (scores.includes?(score) ? 1 : 0)
+    end
+    puts render board, row("metrics", "score", "tile", 128, 256, 512, 1024).colorize.green.bold.to_s,
+                       row("current", score, max_tile, counts[128], counts[256], counts[512], counts[1024]),
                        row("highest", hi_score, hi_tile),
                        row(""),
                        row("move", "perc", "empty", "mono", "smooth").colorize.green.bold.to_s,
-                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2), lw),
-                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2), rw),
-                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2), uw),
-                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2), dw)
+                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2), lw, dirs[:left]?),
+                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2), rw, dirs[:right]?),
+                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2), uw, dirs[:up]?),
+                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2), dw, dirs[:down]?),
+                       row(""),
+                       row("mods", "", mod_emt, mod_mon, mod_smt).colorize.blue.bold.to_s
     puts "\033[#{(board.size * 3) + 1}A"
   end
+
+  scores.each { |score| scores_g[score] ||= 0; scores_g[score] += 1 }
 end
