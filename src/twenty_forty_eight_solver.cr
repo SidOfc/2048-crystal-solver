@@ -32,8 +32,13 @@ module TwentyFortyEightSolver
   def weight(board, e = 5, m = 13, s = 3)
     flattened      = board.flatten
     size           = board.size
-    average        = e * flattened.select(&.>(0)).size * flattened.sum / flattened.size
+    largest        = flattened.max
+    nonempty       = flattened.select(&.>(0))
+    average        = e * nonempty.size * (nonempty.sum / flattened.size)
+    maxpos         = {:x => 0, :y => 0}
     empt, mon, smt = 0, 0, 0
+
+    size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
 
     size.times do |y|
       size.times do |x|
@@ -41,17 +46,19 @@ module TwentyFortyEightSolver
 
         (empt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon   += m * {x, size - x}.min * cell  # penalty for large values not near horizontal border
-        mon   += m * {y, size - y}.min * cell  # penalty for large values not near vertical border
+        mon   += 0.25 * m * {x, size - x}.min * cell  # penalty for large values not near horizontal border
+        mon   += 0.25 * m * {y, size - y}.min * cell  # penalty for large values not near vertical border
+        mon   += 0.25 * m * (x - maxpos[:x]).abs * cell
+        mon   += 0.25 * m * (y - maxpos[:y]).abs * cell
 
-        smt   += s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
-        smt   += s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
-        smt   += s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
-        smt   += s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
+        smt   += 0.25 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
+        smt   += 0.25 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
+        smt   += 0.25 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
+        smt   += 0.25 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
       end
     end
 
-    {empt, mon, smt}
+    {empt.to_i, mon.to_i, smt.to_i}
   end
 
   def up(board)
@@ -115,6 +122,10 @@ module TwentyFortyEightSolver
   end
 end
 
+
+# puts TwentyFortyEight.sample(TwentyFortyEight.options.size) { break unless move TwentyFortyEightSolver.evaluate board, 3, 5, 2 }
+# exit
+
 # tilevalue => [:fore, :back]
 COLOR_MAP = {
   0     => [:white, :white],
@@ -171,8 +182,8 @@ end
 
 hi_tile  = 0
 hi_score = 0
-mod_emt  = 5
-mod_mon  = 14
+mod_emt  = 3
+mod_mon  = 5
 mod_smt  = 2
 scores_g = {} of Int32 => Int32
 
@@ -191,6 +202,7 @@ loop do
     scores << max_tile unless scores.includes? max_tile
     break unless weights = TwentyFortyEightSolver.evaluate board, mod_emt, mod_mon, mod_smt
 
+    puts "\033[#{(board.size * 3) + 1}A"
     move weights[0][0]
     sleep 0.15
 
@@ -224,7 +236,6 @@ loop do
                        row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2), dw, dirs[:down]?),
                        row(""),
                        row("mods", "", mod_emt, mod_mon, mod_smt).colorize.blue.bold.to_s
-    puts "\033[#{(board.size * 3) + 1}A"
   end
 
   scores.each { |score| scores_g[score] ||= 0; scores_g[score] += 1 }
