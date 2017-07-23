@@ -182,9 +182,9 @@ end
 
 hi_tile  = 0
 hi_score = 0
-mod_emt  = 3
-mod_mon  = 5
-mod_smt  = 2
+mod_emt  = 3.3
+mod_mon  = 6.4
+mod_smt  = 2.7
 scores_g = {} of Int32 => Int32
 
 def tile_counts(scores)
