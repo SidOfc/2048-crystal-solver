@@ -67,23 +67,24 @@ module TwentyFortyEightSolver
 
     size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
 
-    hc += largest * nonempty.size if {0, size - 1}.includes?(maxpos[:x]) && {0, size - 1}.includes?(maxpos[:y])
-
     size.times do |y|
       size.times do |x|
         cell  = board[y][x]
 
         (emt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon  -= 0.25 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.25 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.25 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.25 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        hc   += cell * cell if cell == largest && {0, size - 1}.includes?(y) &&
+                               {0, size - 1}.includes?(x)
 
-        smt  -= 0.25 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
-        smt  -= 0.25 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
-        smt  -= 0.25 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
-        smt  -= 0.25 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
+        mon  -= 0.3 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.3 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.2 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.2 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+
+        smt  -= 0.2 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
+        smt  -= 0.2 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
+        smt  -= 0.2 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
+        smt  -= 0.2 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
       end
     end
 
@@ -208,7 +209,7 @@ end
 hi_tile  = 0
 hi_score = 0
 
-depth_setting = 6
+depth_setting = 5
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
