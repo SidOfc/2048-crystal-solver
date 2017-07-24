@@ -6,17 +6,31 @@ require "colorize"
 module TwentyFortyEightSolver
   extend self
 
-  def evaluate(board, e = 5, m = 13, s = 3)
+  def evaluate(board, depth = 3)
+    get_move board, depth, depth
+  end
+
+  def get_move(board, depth, max_depth = depth)
+    best_score = 0
+    best_move  = nil
     directions = available board
 
-    return unless directions.any?
+    directions.each do |direction|
+      new_board = merge_in direction, board
+      score     = weight new_board
 
-    Array({Symbol, Int32, Tuple(Int32, Int32, Int32)}).new(directions.size) do |idx|
-      direction = directions[idx]
-      weights   = weight merge_in(direction, board), e, m, s
+      if depth != 0
+        tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth
+        score               += tmp_score * (0.9 ** (max_depth - depth + 1))
+      end
 
-      {direction, (weights[0] - (weights[1] + weights[2])), weights}
-    end.sort { |a, b| b[1] <=> a[1] }
+      if score > best_score
+        best_move  = direction
+        best_score = score
+      end
+    end
+
+    return {best_move, best_score}
   end
 
   def merge_in(direction, board)
@@ -29,36 +43,38 @@ module TwentyFortyEightSolver
     end
   end
 
-  def weight(board, e = 5, m = 13, s = 3)
-    flattened      = board.flatten
-    size           = board.size
-    largest        = flattened.max
-    nonempty       = flattened.select(&.>(0))
-    average        = e * nonempty.size * (nonempty.sum / flattened.size)
-    maxpos         = {:x => 0, :y => 0}
-    empt, mon, smt = 0, 0, 0
+  def weight(board, e = 4.3, m = 8.4, s = 2.7)
+    flattened         = board.flatten
+    size              = board.size
+    largest           = flattened.max
+    nonempty          = flattened.select(&.>(0))
+    average           = e * nonempty.size * (nonempty.sum / flattened.size)
+    maxpos            = {:x => 0, :y => 0}
+    emt, mon, smt, hc = 0, 0, 0, 0
 
     size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
 
+    hc += largest * nonempty.size if {0, size - 1}.includes?(maxpos[:x]) && {0, size - 1}.includes?(maxpos[:y])
+
     size.times do |y|
       size.times do |x|
-        cell   = board[y][x]
+        cell  = board[y][x]
 
-        (empt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
+        (emt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon   += 0.25 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon   += 0.25 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon   += 0.25 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon   += 0.25 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.25 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.25 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.25 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.25 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
-        smt   += 0.25 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
-        smt   += 0.25 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
-        smt   += 0.25 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
-        smt   += 0.25 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
+        smt  -= 0.25 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
+        smt  -= 0.25 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
+        smt  -= 0.25 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
+        smt  -= 0.25 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
       end
     end
 
-    {empt.to_i, mon.to_i, smt.to_i}
+    {emt, hc, mon, smt}.sum.abs
   end
 
   def up(board)
@@ -122,10 +138,6 @@ module TwentyFortyEightSolver
   end
 end
 
-
-# puts TwentyFortyEight.sample(TwentyFortyEight.options.size) { break unless move TwentyFortyEightSolver.evaluate board, 3, 5, 2 }
-# exit
-
 # tilevalue => [:fore, :back]
 COLOR_MAP = {
   0     => [:white, :white],
@@ -182,61 +194,37 @@ end
 
 hi_tile  = 0
 hi_score = 0
-mod_emt  = 3.3
-mod_mon  = 6.4
-mod_smt  = 2.7
-scores_g = {} of Int32 => Int32
 
-def tile_counts(scores)
-  distinct = scores.uniq
-  {128, 256, 512, 1024}.each_with_object({} of Int32 => Int32) { |score, counts| counts[score] = scores.count(&.==(score)) }
-end
+depth_setting = 6
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
   mvs    = 0
-  scores = [] of Int32
 
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
     max_tile = board.flatten.max
-    scores << max_tile unless scores.includes? max_tile
-    break unless weights = TwentyFortyEightSolver.evaluate board, mod_emt, mod_mon, mod_smt
+    best     = TwentyFortyEightSolver.evaluate board, depth_setting
+
+    break unless move = best[0]
 
     puts "\033[#{(board.size * 3) + 1}A"
-    move weights[0][0]
+    move move
     sleep 0.15
 
-    mvs += 1
-    mcnt[weights[0][0]] += 1
+    mcnt[move] += 1
+    mvs        += 1
+
     hi_tile  = max_tile if max_tile > hi_tile
     hi_score = score if score > hi_score
 
-    dirs = {} of Symbol => (Int32 | Nil)
-    lw, rw, uw, dw = [:left, :right, :up, :down].map do |direction|
-       if found = weights.find(&.first.==(direction))
-         dirs[direction] = found[1]
-         row *found.last
-       else
-         " " * 30 # clear about the length of all the values
-       end
-    end
-
-    tmp = tile_counts scores
-    counts = {128, 256, 512, 1024}.each_with_object({} of Int32 => Int32) do |score, counts|
-      counts[score] = (scores_g[score]? || 0) + (scores.includes?(score) ? 1 : 0)
-    end
-    puts render board, row("metrics", "score", "tile", 128, 256, 512, 1024).colorize.green.bold.to_s,
-                       row("current", score, max_tile, counts[128], counts[256], counts[512], counts[1024]),
+    puts render board, row("metrics", "score", "tile", "depth: #{depth_setting}").colorize.green.to_s,
+                       row("current", score, max_tile),
                        row("highest", hi_score, hi_tile),
                        row(""),
-                       row("move", "perc", "empty", "mono", "smooth").colorize.green.bold.to_s,
-                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2), lw, dirs[:left]?),
-                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2), rw, dirs[:right]?),
-                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2), uw, dirs[:up]?),
-                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2), dw, dirs[:down]?),
-                       row(""),
-                       row("mods", "", mod_emt, mod_mon, mod_smt).colorize.blue.bold.to_s
+                       row("move", "perc").colorize.green.bold.to_s,
+                       row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2)),
+                       row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2)),
+                       row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2)),
+                       row("down", ((mcnt[:down] / mvs.to_f32) * 100).round(2))
   end
-
-  scores.each { |score| scores_g[score] ||= 0; scores_g[score] += 1 }
 end
