@@ -33,29 +33,6 @@ module TwentyFortyEightSolver
     return {best_move, best_score}
   end
 
-  def merge_in(direction, board, insert = false)
-    board = case direction
-    when :down  then down board
-    when :right then right board
-    when :left  then left board
-    when :up    then up board
-    else board
-    end
-
-    if insert
-      x, y = random_empty board
-      board[y][x] = rand(1..10) == 10 ? 4 : 2
-    end
-
-    board
-  end
-
-  def random_empty(board)
-    board.size.times.flat_map do |x|
-      board.size.times.compact_map { |y| {x, y} if board[x][y] == 0 }
-    end.to_a.sample
-  end
-
   def weight(board, e = 3, m = 8, s = 2)
     flattened         = board.flatten
     size              = board.size
@@ -89,6 +66,29 @@ module TwentyFortyEightSolver
     end
 
     {emt, hc, mon, smt}.sum.abs
+  end
+
+  def merge_in(direction, board, insert = false)
+    board = case direction
+    when :down  then down board
+    when :right then right board
+    when :left  then left board
+    when :up    then up board
+    else board
+    end
+
+    if insert
+      x, y = random_empty board
+      board[y][x] = rand(1..10) == 10 ? 4 : 2
+    end
+
+    board
+  end
+
+  def random_empty(board)
+    board.size.times.flat_map do |x|
+      board.size.times.compact_map { |y| {x, y} if board[x][y] == 0 }
+    end.to_a.sample
   end
 
   def up(board)
