@@ -6,21 +6,21 @@ require "colorize"
 module TwentyFortyEightSolver
   extend self
 
-  def evaluate(board, depth = 3)
-    get_move board, depth, depth
+  def evaluate(board, depth, *modifiers)
+    get_move board, depth, depth, *modifiers
   end
 
-  def get_move(board, depth, max_depth = depth)
+  def get_move(board, depth, max_depth = depth, *modifiers)
     best_score = 0
     best_move  = nil
     directions = available board
 
     directions.each do |direction|
       new_board = merge_in direction, board, true
-      score     = weight new_board
+      score     = weight new_board, *modifiers
 
       if depth != 0
-        tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth
+        tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth, *modifiers
         score               += tmp_score * (0.9 ** (max_depth - depth + 1))
       end
 
@@ -152,6 +152,7 @@ module TwentyFortyEightSolver
   end
 end
 
+# color palette used in #render
 # tilevalue => [:fore, :back]
 COLOR_MAP = {
   0     => [:white, :white],
@@ -171,8 +172,10 @@ COLOR_MAP = {
   16384 => [:white, :black]
 }
 
+# default cell padding value
 CELL_PADDING = 9
 
+# method for rendering board and any additional info
 def render(board, *info)
   # transform board into printable lines
   lines = board.map_with_index do |row|
@@ -195,21 +198,24 @@ def render(board, *info)
   lines.join "\n"
 end
 
+# method for outputting padded data consistently
 def row(*data, **opts)
   padding = opts[:padding]? || 8
   gutter  = " " * (opts[:gutter]? || 3)
   data.map(&.to_s.ljust(padding)).join gutter
 end
 
+# trap Ctrl+C and clear the output
 Signal::INT.trap do
   puts "\033[#{(TwentyFortyEight.options.size * 3) + 1}A"
   exit
 end
 
-hi_tile  = 0
-hi_score = 0
+hi_tile  = 0         # remember session highest tile
+hi_score = 0         # remember session highscore
 
-depth_setting = 5
+depth    = 5         # how many moves to look ahead (6 already takes long)
+mods     = {4, 9, 3} # modifiers for empty, monotonocity and smoothness respectively
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
@@ -217,7 +223,7 @@ loop do
 
   TwentyFortyEight.sample(TwentyFortyEight.options.size) do
     max_tile = board.flatten.max
-    best     = TwentyFortyEightSolver.evaluate board, depth_setting
+    best     = TwentyFortyEightSolver.evaluate board, depth, *mods
 
     break unless move = best[0]
 
@@ -231,10 +237,10 @@ loop do
     hi_tile  = max_tile if max_tile > hi_tile
     hi_score = score if score > hi_score
 
-    puts render board, row("metrics", "score", "tile", "depth: #{depth_setting}").colorize.green.to_s,
-                       row("current", score, max_tile),
-                       row("highest", hi_score, hi_tile),
-                       row(""),
+    puts render board, row("metrics", "score", "tile", row("depth:", depth).colorize.cyan.to_s).colorize.green.bold.to_s,
+                       row("current", score, max_tile, row("empty:", mods[0]).to_s.colorize.cyan.bold.to_s),
+                       row("highest", hi_score, hi_tile, row("smooth:", mods[1]).to_s.colorize.cyan.bold.to_s),
+                       row("", "", "", row("mono:", mods[2]).to_s.colorize.cyan.bold.to_s),
                        row("move", "perc").colorize.green.bold.to_s,
                        row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2)),
                        row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2)),
