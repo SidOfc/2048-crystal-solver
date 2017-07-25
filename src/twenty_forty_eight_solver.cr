@@ -214,7 +214,7 @@ end
 hi_tile  = 0         # remember session highest tile
 hi_score = 0         # remember session highscore
 
-depth    = 6         # how many moves to look ahead (6 already takes long)
+depth    = 6          # how many moves to look ahead (6 already takes long)
 mods     = {6, 15, 4} # modifiers for empty, monotonocity and smoothness respectively
 
 loop do
