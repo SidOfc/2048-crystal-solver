@@ -239,8 +239,8 @@ loop do
 
     puts render board, row("metrics", "score", "tile", row("depth:", depth).colorize.cyan.to_s).colorize.green.bold.to_s,
                        row("current", score, max_tile, row("empty:", mods[0]).to_s.colorize.cyan.bold.to_s),
-                       row("highest", hi_score, hi_tile, row("smooth:", mods[1]).to_s.colorize.cyan.bold.to_s),
-                       row("", "", "", row("mono:", mods[2]).to_s.colorize.cyan.bold.to_s),
+                       row("highest", hi_score, hi_tile, row("mono:", mods[1]).to_s.colorize.cyan.bold.to_s),
+                       row("", "", "", row("smooth:", mods[2]).to_s.colorize.cyan.bold.to_s),
                        row("move", "perc").colorize.green.bold.to_s,
                        row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2)),
                        row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2)),
