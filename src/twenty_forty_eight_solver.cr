@@ -214,8 +214,8 @@ end
 hi_tile  = 0         # remember session highest tile
 hi_score = 0         # remember session highscore
 
-depth    = 5         # how many moves to look ahead (6 already takes long)
-mods     = {4, 9, 3} # modifiers for empty, monotonocity and smoothness respectively
+depth    = 6         # how many moves to look ahead (6 already takes long)
+mods     = {6, 15, 4} # modifiers for empty, monotonocity and smoothness respectively
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
