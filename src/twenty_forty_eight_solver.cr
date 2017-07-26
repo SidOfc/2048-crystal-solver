@@ -58,10 +58,10 @@ module TwentyFortyEightSolver
         mon  -= 0.2 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
         mon  -= 0.2 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
-        smt  -= 0.2 * s * (cell - (y > 0            ? cell - board[y-1][x] : 0)).abs # top of current
-        smt  -= 0.2 * s * (cell - (y < size - 1     ? cell - board[y+1][x] : 0)).abs # down of current
-        smt  -= 0.2 * s * (cell - (l = x > 0        ? cell - board[y][x-1] : 0)).abs # left of current
-        smt  -= 0.2 * s * (cell - (r = x < size - 1 ? cell - board[y][x+1] : 0)).abs # right of current
+        smt  -= 0.2 * s * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
+        smt  -= 0.2 * s * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
+        smt  -= 0.2 * s * (cell - (l = x > 0        ? board[y][x-1] : cell)).abs # left of current
+        smt  -= 0.2 * s * (cell - (r = x < size - 1 ? board[y][x+1] : cell)).abs # right of current
       end
     end
 
