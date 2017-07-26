@@ -16,8 +16,8 @@ module TwentyFortyEightSolver
     directions = available board
 
     directions.each do |direction|
-      new_board = merge_in direction, board, true
-      score     = weight new_board, *modifiers
+      new_board, score_diff = merge_in direction, board, true
+      score                 = weight new_board, score_diff, *modifiers
 
       if depth != 0
         tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth, *modifiers
@@ -33,16 +33,18 @@ module TwentyFortyEightSolver
     return {best_move, best_score}
   end
 
-  def weight(board, e = 3, m = 8, s = 2)
-    flattened         = board.flatten
-    size              = board.size
-    largest           = flattened.max
-    nonempty          = flattened.select(&.>(0))
-    average           = e * nonempty.size * (nonempty.sum / flattened.size)
-    maxpos            = {:x => 0, :y => 0}
-    emt, mon, smt, hc = 0, 0, 0, 0
+  def weight(board, diff, e = 3, m = 8, s = 2, c = 2, d = 4)
+    flattened              = board.flatten
+    size                   = board.size
+    largest                = flattened.max
+    nonempty               = flattened.select(&.>(0))
+    average                = e * nonempty.size * (nonempty.sum / flattened.size)
+    maxpos                 = {:x => 0, :y => 0}
+    emt, mon, smt, hc, dfm = 0, 0, 0, 0, (d * diff)
 
+    # get largest cell coords and give a bonus to largest in corner
     size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
+    hc = c * largest * largest if {0, size - 1}.includes?(maxpos[:x]) && {0, size - 1}.includes?(maxpos[:y])
 
     size.times do |y|
       size.times do |x|
@@ -50,26 +52,24 @@ module TwentyFortyEightSolver
 
         (emt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        hc   += cell * cell if cell == largest && {0, size - 1}.includes?(y) &&
-                               {0, size - 1}.includes?(x)
+        mon  -= 0.25 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.25 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.25 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.25 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
-        mon  -= 0.3 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.3 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.2 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.2 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
-
-        smt  -= 0.2 * s * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
-        smt  -= 0.2 * s * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
-        smt  -= 0.2 * s * (cell - (l = x > 0        ? board[y][x-1] : cell)).abs # left of current
-        smt  -= 0.2 * s * (cell - (r = x < size - 1 ? board[y][x+1] : cell)).abs # right of current
+        smt  -= 0.25 * s * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
+        smt  -= 0.25 * s * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
+        smt  -= 0.25 * s * (cell - (l = x > 0        ? board[y][x-1] : cell)).abs # left of current
+        smt  -= 0.25 * s * (cell - (r = x < size - 1 ? board[y][x+1] : cell)).abs # right of current
       end
     end
 
-    {emt, hc, mon, smt}.sum.abs
+    {emt, hc, dfm, mon, smt}.sum.abs
   end
 
   def merge_in(direction, board, insert = false)
-    board = case direction
+    initial = board.flatten.sum
+    board   = case direction
     when :down  then down board
     when :right then right board
     when :left  then left board
@@ -82,7 +82,7 @@ module TwentyFortyEightSolver
       board[y][x] = rand(1..10) == 10 ? 4 : 2
     end
 
-    board
+    {board, board.flatten.sum - initial}
   end
 
   def random_empty(board)
