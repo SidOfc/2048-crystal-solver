@@ -211,11 +211,12 @@ Signal::INT.trap do
   exit
 end
 
-hi_tile  = 0         # remember session highest tile
-hi_score = 0         # remember session highscore
+hi_tile  = 0             # remember session highest tile
+hi_score = 0             # remember session highscore
+scores   = [] of Int32   # save final score of each game to show average score
 
-depth    = 5          # how many moves to look ahead (6 already takes long)
-mods     = {6, 19, 3} # modifiers for empty, monotonocity and smoothness respectively
+depth    = 5             # how many moves to look ahead (6 already takes long)
+mods     = {0.1, 0.7, 0.15, 0.05} # modifiers for empty, monotonocity and smoothness respectively
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
@@ -225,7 +226,7 @@ loop do
     max_tile = board.flatten.max
     best     = TwentyFortyEightSolver.evaluate board, depth, *mods
 
-    break unless move = best[0]
+    break scores << score unless move = best[0]
 
     puts "\033[#{(board.size * 3) + 1}A"
     move move
@@ -236,12 +237,15 @@ loop do
 
     hi_tile  = max_tile if max_tile > hi_tile
     hi_score = score if score > hi_score
+    avg      = scores.any? ? (scores.sum + score) / (scores.size + 1) : score
 
     puts render board, row("metrics", "score", "tile", row("depth:", depth).colorize.cyan.to_s).colorize.green.bold.to_s,
                        row("current", score, max_tile, row("empty:", mods[0]).to_s.colorize.cyan.bold.to_s),
                        row("highest", hi_score, hi_tile, row("mono:", mods[1]).to_s.colorize.cyan.bold.to_s),
-                       row("", "", "", row("smooth:", mods[2]).to_s.colorize.cyan.bold.to_s),
-                       row("move", "perc").colorize.green.bold.to_s,
+                       row("average", avg, "", row("smooth:", mods[2]).to_s.colorize.cyan.bold.to_s),
+                       row("", "", "", row("score:", mods[3]).to_s.colorize.cyan.bold.to_s),
+                       row(""),
+                       row("move", "perc", "", row("games:", scores.size + 1).colorize.red.bold.to_s).colorize.green.bold.to_s,
                        row("left", ((mcnt[:left] / mvs.to_f32) * 100).round(2)),
                        row("right", ((mcnt[:right] / mvs.to_f32) * 100).round(2)),
                        row("up", ((mcnt[:up] / mvs.to_f32) * 100).round(2)),
