@@ -33,37 +33,37 @@ module TwentyFortyEightSolver
   end
 
   def weight(board, diff, e = 3, m = 8, s = 2, c = 2, d = 4)
-    flattened              = board.flatten
-    size                   = board.size
-    largest                = flattened.max
-    nonempty               = flattened.select(&.>(0))
-    average                = e * nonempty.size * (nonempty.sum / flattened.size)
-    maxpos                 = {:x => 0, :y => 0}
-    emt, mon, smt, hc, dfm = 0, 0, 0, 0, (d * diff)
+    flattened         = board.flatten
+    size              = board.size
+    largest           = flattened.max
+    nonempty          = flattened.select(&.>(0))
+    empty_score       = flattened.sum / size.to_f
+    maxpos            = {:x => 0, :y => 0}
+    emt, mon, smt, hc = 0, 0, 0, 0
 
     # get largest cell coords and give a bonus to largest in corner
     size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
-    hc = c * largest * largest if {0, size - 1}.includes?(maxpos[:x]) && {0, size - 1}.includes?(maxpos[:y])
+    hc = largest * largest if {0, size - 1}.includes?(maxpos[:x]) && {0, size - 1}.includes?(maxpos[:y])
 
     size.times do |y|
       size.times do |x|
         cell  = board[y][x]
 
-        (emt += average) && next if cell == 0 # give empty cells a large bonus and move to next cell
+        (emt += empty_score) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon  -= 0.25 * m * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.25 * m * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.25 * m * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.25 * m * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.35 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.35 * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.15 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.15 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
-        smt  -= 0.25 * s * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
-        smt  -= 0.25 * s * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
-        smt  -= 0.25 * s * (cell - (l = x > 0        ? board[y][x-1] : cell)).abs # left of current
-        smt  -= 0.25 * s * (cell - (r = x < size - 1 ? board[y][x+1] : cell)).abs # right of current
+        smt  -= 0.25 * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
+        smt  -= 0.25 * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
+        smt  -= 0.25 * (cell - (l = x > 0        ? board[y][x-1] : cell)).abs # left of current
+        smt  -= 0.25 * (cell - (r = x < size - 1 ? board[y][x+1] : cell)).abs # right of current
       end
     end
 
-    {emt, hc, dfm, mon, smt}.sum.abs
+    {e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
   end
 
   def merge_in(direction, board, insert = false)
