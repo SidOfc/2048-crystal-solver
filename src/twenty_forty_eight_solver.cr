@@ -51,10 +51,10 @@ module TwentyFortyEightSolver
 
         (emt += empty_score) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon  -= 0.35 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.35 * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.15 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.15 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.3 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.3 * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.2 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.2 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
         smt  -= 0.25 * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
         smt  -= 0.25 * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
