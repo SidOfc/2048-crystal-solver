@@ -67,7 +67,8 @@ scores   = [] of Int32   # save final score of each game to show average score
 depth    = 4             # how many moves to look ahead (6 already takes long)
 
 # empty, mono, smooth, highest in corner, score diff
-mods     = {7, 25, 3, 2, 1}
+defaults = {8, 25, 3, 2, 1}
+mods     = Tuple(Int32, Int32, Int32, Int32, Int32).from defaults.size.times.map { |i| ARGV[i]? && ARGV[i].to_i || defaults[i] }.to_a
 
 loop do
   mcnt   = {:left => 0, :right => 0, :down => 0, :up => 0}
