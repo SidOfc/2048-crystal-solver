@@ -69,12 +69,12 @@ module TwentyFortyEightSolver
   def merge_in(direction, board, insert = false)
     initial = board.flatten.sum
     board   = case direction
-    when :down  then down board
-    when :right then right board
-    when :left  then left board
-    when :up    then up board
-    else board
-    end
+              when :down  then down board
+              when :right then right board
+              when :left  then left board
+              when :up    then up board
+              else board
+              end
 
     if insert
       x, y = random_empty board
