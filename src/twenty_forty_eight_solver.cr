@@ -40,6 +40,7 @@ module TwentyFortyEightSolver
     empty_score       = flattened.sum / size.to_f
     maxpos            = {:x => 0, :y => 0}
     emt, mon, smt, hc = 0, 0, 0, 0
+    bias              = 0
 
     # get largest cell coords and give a bonus to largest in corner
     size.times { |y| size.times { |x| (maxpos[:x] = x) && (maxpos[:y] = y) if board[y][x] == largest } }
@@ -51,10 +52,12 @@ module TwentyFortyEightSolver
 
         (emt += empty_score) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        mon  -= 0.3 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.3 * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.2 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.2 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        bias += cell * (x+1) * (y+1)
+
+        mon  -= 0.4 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.4 * {y, size - y}.min * cell    # penalty for large values not near vertical border
+        mon  -= 0.1 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.1 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
 
         smt  -= 0.25 * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
         smt  -= 0.25 * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
@@ -63,7 +66,7 @@ module TwentyFortyEightSolver
       end
     end
 
-    {e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
+    {bias * 15, e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
   end
 
   def merge_in(direction, board, insert = false)
