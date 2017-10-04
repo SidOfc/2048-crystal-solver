@@ -13,6 +13,10 @@ dependencies:
     git: https://github.com/SidOfc/2048-crystal.git
     branch: master
 
+  crt:
+    github: maiha/crt.cr
+    version: 0.3.0
+
 crystal: 0.22.0
 
 license: MIT

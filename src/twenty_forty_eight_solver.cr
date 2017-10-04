@@ -32,7 +32,7 @@ module TwentyFortyEightSolver
     return {best_move, best_score}
   end
 
-  def weight(board, diff, e = 3, m = 8, s = 2, c = 2, d = 4)
+  def weight(board, diff, b = 15,  e = 3, m = 8, s = 2, c = 2, d = 4)
     flattened         = board.flatten
     size              = board.size
     largest           = flattened.max
@@ -66,7 +66,7 @@ module TwentyFortyEightSolver
       end
     end
 
-    {bias * 15, e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
+    {b * bias, e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
   end
 
   def merge_in(direction, board, insert = false)
