@@ -5,21 +5,27 @@ require "twenty_forty_eight/options"
 module TwentyFortyEightSolver
   extend self
 
-  def evaluate(board, depth, *modifiers)
-    get_move board, depth, depth, *modifiers
+  @@settings = {depth: 2, bias: 1, empty: 1, mono: 1, smooth: 1, corner: 1}
+
+  def configure(**settings)
+    @@settings = settings
   end
 
-  def get_move(board, depth, max_depth = depth, *modifiers)
+  def evaluate(board)
+    get_move board, @@settings[:depth]
+  end
+
+  def get_move(board, depth, max_depth = depth)
     best_score = 0
     best_move  = nil
     directions = available board
 
     directions.each do |direction|
       new_board, score_diff = merge_in direction, board, true
-      score                 = weight new_board, score_diff, *modifiers
+      score                 = weight new_board
 
       if depth != 0
-        tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth, *modifiers
+        tmp_move, tmp_score  = get_move new_board, depth - 1, max_depth
         score               += tmp_score * (0.9 ** (max_depth - depth + 1))
       end
 
@@ -32,7 +38,7 @@ module TwentyFortyEightSolver
     return {best_move, best_score}
   end
 
-  def weight(board, diff, b = 15,  e = 3, m = 8, s = 2, c = 2, d = 4)
+  def weight(board)
     flattened         = board.flatten
     size              = board.size
     largest           = flattened.max
@@ -52,12 +58,10 @@ module TwentyFortyEightSolver
 
         (emt += empty_score) && next if cell == 0 # give empty cells a large bonus and move to next cell
 
-        bias += cell * (x+1) * (y+1)
+        bias += cell * (x + 1) * (y + 1)
 
-        mon  -= 0.4 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
-        mon  -= 0.4 * {y, size - y}.min * cell    # penalty for large values not near vertical border
-        mon  -= 0.1 * (x - maxpos[:x]).abs * cell # penalty for large values not near largest value in x axis
-        mon  -= 0.1 * (y - maxpos[:y]).abs * cell # penalty for large values not near largest value in x axis
+        mon  -= 0.5 * {x, size - x}.min * cell    # penalty for large values not near horizontal border
+        mon  -= 0.5 * {y, size - y}.min * cell    # penalty for large values not near vertical border
 
         smt  -= 0.25 * (cell - (y > 0            ? board[y-1][x] : cell)).abs # top of current
         smt  -= 0.25 * (cell - (y < size - 1     ? board[y+1][x] : cell)).abs # down of current
@@ -66,7 +70,11 @@ module TwentyFortyEightSolver
       end
     end
 
-    {b * bias, e * emt, c * hc, d ** diff.abs, m * mon, s * smt}.sum.abs
+    {bias * @@settings[:bias],
+     emt  * @@settings[:empty],
+     hc   * @@settings[:corner],
+     mon  * @@settings[:mono],
+     smt  * @@settings[:smooth]}.sum
   end
 
   def merge_in(direction, board, insert = false)
