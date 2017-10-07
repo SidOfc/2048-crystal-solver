@@ -37,8 +37,8 @@ meta_pad    = 29
 win         = Crt::Window.new offset_y + plays + offset_yb, 100
 
 def select_color(empty_tile_count)
-  return BG_BLACK if empty_tile_count < 0
-  return BG_RED if empty_tile_count <= 2
+  return BG_BLACK  if empty_tile_count <  0
+  return BG_RED    if empty_tile_count <= 2
   return BG_YELLOW if empty_tile_count <= 5
   BG_GREEN
 end
