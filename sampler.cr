@@ -12,11 +12,17 @@ BG_RED      = Crt::ColorPair.new Crt::Color::White, Crt::Color::Red
 BG_BLACK    = Crt::ColorPair.new Crt::Color::White, Crt::Color::Black
 COLOR_RESET = Crt::ColorPair.new Crt::Color::Default, Crt::Color::Default
 
+arg_mods    = ARGV.select(&.includes?(':')).map(&.split(':')).to_h
 size        = TwentyFortyEight.options.size
 plays       = TwentyFortyEight.options.count
 interval    = (0.004 * plays).seconds
 channel     = Channel(Tuple(Int32, Int32, Int32, Int32)).new
-settings    = {depth: 4, bias: 15, empty: 4, mono: 7, smooth: 2, corner: 2}
+settings    = {depth:  (arg_mods["depth"]?  || 4).to_i,
+               bias:   (arg_mods["bias"]?   || 20).to_i,
+               empty:  (arg_mods["empty"]?  || 2).to_i,
+               mono:   (arg_mods["mono"]?   || 7).to_i,
+               smooth: (arg_mods["smooth"]? || 2).to_i,
+               corner: (arg_mods["corner"]? || 1).to_i}
 first_frame = true
 lended      = 0
 scores      = plays.times.map { 0 }.to_a
