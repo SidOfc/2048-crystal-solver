@@ -3,6 +3,8 @@
 require "crt"
 require "./src/twenty_forty_eight_solver"
 
+Signal::INT.trap { exit 0 }
+
 Crt.init
 Crt.start_color
 
